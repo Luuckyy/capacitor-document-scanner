@@ -17,7 +17,7 @@
     "@capacitor/core": "latest",
     "@capacitor/ios": "^5.0.0",
     "@capacitor/splash-screen": "latest",
-    "capacitor-document-scanner": "file:.."
+    "@luuckyy/capacitor-document-scanner": "file:.."
   },
   "devDependencies": {
     "@capacitor/cli": "latest",

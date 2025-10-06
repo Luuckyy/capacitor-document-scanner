@@ -51,7 +51,7 @@ export enum ResponseType {
   Base64 = 'base64',
 
   /**
-   * Use this response type if you want document scan returned as inmage file paths.
+   * Use this response type if you want document scan returned as image file paths.
    */
   ImageFilePath = 'imageFilePath'
 }

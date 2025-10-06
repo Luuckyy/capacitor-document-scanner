@@ -1,7 +1,7 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">document-scanner-demo</string>
-    <string name="title_activity_main">document-scanner-demo</string>
+    <string name="app_name">Capacitor Document Scanner</string>
+    <string name="title_activity_main">Capacitor Document Scanner</string>
     <string name="package_name">com.luuckyy.capacitordocumentscanner.demo</string>
     <string name="custom_url_scheme">com.luuckyy.capacitordocumentscanner.demo</string>
 </resources>

@@ -190,10 +190,10 @@ Opens the camera, and starts the document scan
 
 #### ResponseType
 
-| Members             | Value                        | Description                                                                     |
-| ------------------- | ---------------------------- | ------------------------------------------------------------------------------- |
-| **`Base64`**        | <code>'base64'</code>        | Use this response type if you want document scan returned as base64 images.     |
-| **`ImageFilePath`** | <code>'imageFilePath'</code> | Use this response type if you want document scan returned as inmage file paths. |
+| Members             | Value                        | Description                                                                    |
+| ------------------- | ---------------------------- | ------------------------------------------------------------------------------ |
+| **`Base64`**        | <code>'base64'</code>        | Use this response type if you want document scan returned as base64 images.    |
+| **`ImageFilePath`** | <code>'imageFilePath'</code> | Use this response type if you want document scan returned as image file paths. |
 
 
 #### ScannerMode

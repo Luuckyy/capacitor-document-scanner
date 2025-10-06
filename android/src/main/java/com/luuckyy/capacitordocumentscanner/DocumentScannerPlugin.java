@@ -30,11 +30,24 @@ import java.util.List;
  * This class is used to start a document scan using Google ML Kit.
  * It accepts parameters used to customize the document scan, and callback parameters.
  */
-@CapacitorPlugin(name = "DocumentScanner")
+@CapacitorPlugin(name = "DocumentScanner", requestCodes = {9999})
 public class DocumentScannerPlugin extends Plugin {
 
     private static final String TAG = "DocumentScannerPlugin";
     private static final int REQUEST_CODE_SCAN = 9999;
+    
+    // Response type constants
+    private static final String RESPONSE_TYPE_IMAGE_FILE_PATH = "imageFilePath";
+    private static final String RESPONSE_TYPE_BASE64 = "base64";
+    
+    // Scanner mode constants
+    private static final String SCANNER_MODE_FULL = "FULL";
+    private static final String SCANNER_MODE_BASE = "BASE";
+    private static final String SCANNER_MODE_BASE_WITH_FILTER = "BASE_WITH_FILTER";
+    
+    // Store parameters for use in result handling
+    private String currentResponseType = RESPONSE_TYPE_IMAGE_FILE_PATH;
+    private int currentQuality = 100;
 
     /**
      * start the document scanner using Google ML Kit
@@ -43,21 +56,40 @@ public class DocumentScannerPlugin extends Plugin {
      */
     @PluginMethod
     public void scanDocument(PluginCall call) {
+        Log.d(TAG, "=== scanDocument called ===");
+        Log.d(TAG, "Call ID: " + call.getCallbackId());
+        
         // Get configuration options from the call
-        String responseType = call.getString("responseType", "base64");
-        Integer maxNumDocuments = call.getInt("maxNumDocuments", 1);
-        String scannerMode = call.getString("scannerMode", "FULL");
+        Integer maxNumDocuments = call.getInt("maxNumDocuments", 24);
+        String scannerMode = call.getString("scannerMode", SCANNER_MODE_FULL);
+        String responseType = call.getString("responseType", RESPONSE_TYPE_IMAGE_FILE_PATH);
+        Integer quality = call.getInt("croppedImageQuality", 100);
+        Boolean letUserAdjustCrop = call.getBoolean("letUserAdjustCrop", true);
+        
+        Log.d(TAG, "Parameters:");
+        Log.d(TAG, "  maxNumDocuments: " + maxNumDocuments);
+        Log.d(TAG, "  scannerMode: " + scannerMode);
+        Log.d(TAG, "  responseType: " + responseType);
+        Log.d(TAG, "  quality: " + quality);
+        Log.d(TAG, "  letUserAdjustCrop: " + letUserAdjustCrop);
+        
+        // Store parameters for use in result handling
+        this.currentResponseType = responseType;
+        this.currentQuality = quality != null ? quality : 100;
         
         // Build ML Kit scanner options
         GmsDocumentScannerOptions.Builder optionsBuilder = new GmsDocumentScannerOptions.Builder();
         
         // Set scanner mode
-        if ("BASE".equals(scannerMode)) {
+        if (SCANNER_MODE_BASE.equals(scannerMode)) {
             optionsBuilder.setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_BASE);
-        } else if ("BASE_WITH_FILTER".equals(scannerMode)) {
+            Log.d(TAG, "Scanner mode set to BASE");
+        } else if (SCANNER_MODE_BASE_WITH_FILTER.equals(scannerMode)) {
             optionsBuilder.setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_BASE_WITH_FILTER);
+            Log.d(TAG, "Scanner mode set to BASE_WITH_FILTER");
         } else {
             optionsBuilder.setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL);
+            Log.d(TAG, "Scanner mode set to FULL");
         }
         
         // Set result formats
@@ -72,30 +104,33 @@ public class DocumentScannerPlugin extends Plugin {
         }
         
         // Set gallery import allowed (equivalent to letUserAdjustCrop)
-        optionsBuilder.setGalleryImportAllowed(call.getBoolean("letUserAdjustCrop", true));
+        optionsBuilder.setGalleryImportAllowed(letUserAdjustCrop);
+        Log.d(TAG, "Gallery import allowed: " + letUserAdjustCrop);
         
         GmsDocumentScannerOptions options = optionsBuilder.build();
         GmsDocumentScanner scanner = GmsDocumentScanning.getClient(options);
         
         // Get the scanner intent
+        Log.d(TAG, "Getting scanner intent...");
         scanner.getStartScanIntent(getActivity())
             .addOnSuccessListener(intentSender -> {
+                Log.d(TAG, "Scanner intent obtained successfully");
                 try {
-                    // Create an intent from the intent sender
-                    Intent intent = new Intent();
-                    // Store the call for later use in the callback
-                    // Launch the scanner using the IntentSender directly via activity
-                    getActivity().startIntentSenderForResult(
-                        intentSender,
-                        REQUEST_CODE_SCAN,
-                        intent,
-                        0,
-                        0,
-                        0
-                    );
                     // Save the call to process the result later
                     saveCall(call);
-                } catch (IntentSender.SendIntentException e) {
+                    Log.d(TAG, "Call saved, starting scanner with request code: " + REQUEST_CODE_SCAN);
+                    
+                    // Use traditional startIntentSenderForResult with declared request code
+                    getActivity().startIntentSenderForResult(
+                        intentSender,
+                        REQUEST_CODE_SCAN, // Use the request code declared in annotation
+                        null, // No fill-in intent
+                        0,    // flagsMask
+                        0,    // flagsValues
+                        0     // extraFlags
+                    );
+                    Log.d(TAG, "Scanner started successfully with request code: " + REQUEST_CODE_SCAN);
+                } catch (Exception e) {
                     Log.e(TAG, "Error starting scanner", e);
                     call.reject("Failed to start document scanner: " + e.getMessage());
                 }
@@ -108,78 +143,108 @@ public class DocumentScannerPlugin extends Plugin {
 
     @Override
     protected void handleOnActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.d(TAG, "=== handleOnActivityResult called ===");
+        Log.d(TAG, "Request code: " + requestCode + " (expected: " + REQUEST_CODE_SCAN + ")");
+        Log.d(TAG, "Result code: " + resultCode + " (RESULT_OK=" + Activity.RESULT_OK + ", RESULT_CANCELED=" + Activity.RESULT_CANCELED + ")");
+        Log.d(TAG, "Data is null: " + (data == null));
+        
         super.handleOnActivityResult(requestCode, resultCode, data);
         
         if (requestCode != REQUEST_CODE_SCAN) {
+            Log.d(TAG, "Request code mismatch - expected: " + REQUEST_CODE_SCAN + ", got: " + requestCode);
             return;
         }
         
         PluginCall call = getSavedCall();
         if (call == null) {
+            Log.e(TAG, "No saved call found - this should not happen");
             return;
         }
         
+        Log.d(TAG, "Processing result with call: " + call.getCallbackId());
         JSObject response = new JSObject();
         
         if (resultCode == Activity.RESULT_CANCELED) {
             // User cancelled the scan
+            Log.d(TAG, "User cancelled the scan - returning cancel status");
             response.put("status", "cancel");
             call.resolve(response);
+            Log.d(TAG, "Call resolved with cancel status");
             return;
         }
         
         if (resultCode != Activity.RESULT_OK) {
             // Error occurred
+            Log.e(TAG, "Document scanning failed with result code: " + resultCode);
             call.reject("Document scanning failed with result code: " + resultCode);
             return;
         }
         
         if (data == null) {
+            Log.e(TAG, "No data returned from document scanner");
             call.reject("No data returned from document scanner");
             return;
         }
         
+        Log.d(TAG, "Data received successfully, extracting scanning result...");
+        
         // Extract scanning result
         GmsDocumentScanningResult scanningResult = GmsDocumentScanningResult.fromActivityResultIntent(data);
         if (scanningResult == null) {
+            Log.e(TAG, "Failed to extract scanning result from intent data");
             call.reject("Failed to extract scanning result");
             return;
         }
         
+        Log.d(TAG, "Scanning result extracted successfully");
+        
         // Process the scanned pages
         List<GmsDocumentScanningResult.Page> pages = scanningResult.getPages();
         if (pages == null || pages.isEmpty()) {
+            Log.e(TAG, "No pages were scanned - pages is null or empty");
             call.reject("No pages were scanned");
             return;
         }
         
-        String responseType = call.getString("responseType", "base64");
-        Integer quality = call.getInt("croppedImageQuality", 100);
-        if (quality == null || quality < 0 || quality > 100) {
-            quality = 100;
-        }
+        Log.d(TAG, "Found " + pages.size() + " scanned pages");
+        Log.d(TAG, "Processing images with responseType: " + this.currentResponseType + ", quality: " + this.currentQuality);
         
         try {
             ArrayList<String> scannedImages = new ArrayList<>();
             
-            for (GmsDocumentScanningResult.Page page : pages) {
+            for (int i = 0; i < pages.size(); i++) {
+                GmsDocumentScanningResult.Page page = pages.get(i);
+                Log.d(TAG, "Processing page " + (i + 1) + " of " + pages.size());
+                
                 Uri imageUri = page.getImageUri();
                 if (imageUri != null) {
-                    String processedImage = processImage(imageUri, responseType, quality);
+                    Log.d(TAG, "Page " + (i + 1) + " image URI: " + imageUri.toString());
+                    String processedImage = processImage(imageUri, this.currentResponseType, this.currentQuality);
                     if (processedImage != null) {
                         scannedImages.add(processedImage);
+                        Log.d(TAG, "Page " + (i + 1) + " processed successfully, length: " + processedImage.length());
+                    } else {
+                        Log.e(TAG, "Failed to process page " + (i + 1));
                     }
+                } else {
+                    Log.e(TAG, "Page " + (i + 1) + " has null image URI");
                 }
             }
             
+            Log.d(TAG, "Processed " + scannedImages.size() + " images successfully");
+            
             if (scannedImages.isEmpty()) {
+                Log.e(TAG, "No images were processed successfully");
                 call.reject("Failed to process scanned images");
                 return;
             }
             
             response.put("scannedImages", new JSArray(scannedImages));
             response.put("status", "success");
+            
+            Log.d(TAG, "Resolving call with success status and " + scannedImages.size() + " images");
             call.resolve(response);
+            Log.d(TAG, "Call resolved successfully");
             
         } catch (Exception e) {
             Log.e(TAG, "Error processing scanned images", e);
@@ -197,7 +262,7 @@ public class DocumentScannerPlugin extends Plugin {
      */
     private String processImage(Uri imageUri, String responseType, int quality) {
         try {
-            if ("imageFilePath".equals(responseType) || "imageUri".equals(responseType)) {
+            if (RESPONSE_TYPE_IMAGE_FILE_PATH.equals(responseType)) {
                 // Copy to app's cache directory and return file URI
                 File cacheFile = new File(getContext().getCacheDir(), "scanned_" + System.currentTimeMillis() + ".jpg");
                 copyUriToFile(imageUri, cacheFile);

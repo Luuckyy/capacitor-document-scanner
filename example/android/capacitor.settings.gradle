@@ -8,5 +8,5 @@ project(':capacitor-camera').projectDir = new File('../node_modules/@capacitor/c
 include ':capacitor-splash-screen'
 project(':capacitor-splash-screen').projectDir = new File('../node_modules/@capacitor/splash-screen/android')
 
-include ':capacitor-document-scanner'
-project(':capacitor-document-scanner').projectDir = new File('../node_modules/capacitor-document-scanner/android')
+include ':luuckyy-capacitor-document-scanner'
+project(':luuckyy-capacitor-document-scanner').projectDir = new File('../node_modules/@luuckyy/capacitor-document-scanner/android')
