@@ -1,14 +1,28 @@
 import { Capacitor } from '@capacitor/core'
-import { DocumentScanner, ScanDocumentResponseStatus } from 'capacitor-document-scanner'
+import { DocumentScanner, ScanDocumentResponseStatus, ScannerMode, ResponseType } from 'capacitor-document-scanner'
 
 /**
- * an example showing how to use the document scanner
+ * an example showing how to use the document scanner with Google ML Kit
  */
 const scanDocument = async (): Promise<void> => {
   try {
-    // start the document scanner, and end after 1 photo
+    // start the document scanner with ML Kit options
     const { scannedImages, status } = await DocumentScanner.scanDocument({
-      maxNumDocuments: 1
+      // Maximum number of documents to scan
+      maxNumDocuments: 1,
+      
+      // Scanner mode - FULL provides all features (filters, detection, cropping)
+      // Other options: ScannerMode.BASE, ScannerMode.BASE_WITH_FILTER
+      scannerMode: ScannerMode.FULL,
+      
+      // Response type - can be base64 or file path
+      responseType: ResponseType.ImageFilePath,
+      
+      // Allow user to adjust detected document corners
+      letUserAdjustCrop: true,
+      
+      // Image quality (0-100, only affects base64 responses)
+      croppedImageQuality: 100
     })
   
     // get the html image

@@ -33,6 +33,15 @@ export interface ScanDocumentOptions {
    * @default: ResponseType.ImageFilePath
    */
   responseType?: ResponseType
+
+  /**
+   * Android only (ML Kit): The scanner mode to use.
+   * - FULL: Full featured scanner with document detection, cropping, and filters
+   * - BASE: Basic scanner with document detection and cropping
+   * - BASE_WITH_FILTER: Basic scanner with document detection, cropping, and filters
+   * @default: ScannerMode.FULL
+   */
+  scannerMode?: ScannerMode
 }
 
 export enum ResponseType {
@@ -45,6 +54,26 @@ export enum ResponseType {
    * Use this response type if you want document scan returned as inmage file paths.
    */
   ImageFilePath = 'imageFilePath'
+}
+
+export enum ScannerMode {
+  /**
+   * Full featured scanner with document detection, cropping, and filters.
+   * This mode provides the best user experience with all features enabled.
+   */
+  FULL = 'FULL',
+
+  /**
+   * Basic scanner with document detection and cropping only.
+   * This mode is faster and uses less resources.
+   */
+  BASE = 'BASE',
+
+  /**
+   * Basic scanner with document detection, cropping, and filters.
+   * This mode provides filters without the full feature set.
+   */
+  BASE_WITH_FILTER = 'BASE_WITH_FILTER'
 }
 
 export interface ScanDocumentResponse {

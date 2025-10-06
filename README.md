@@ -174,6 +174,7 @@ Opens the camera, and starts the document scan
 | **`letUserAdjustCrop`**   | <code>boolean</code>                                  | Android only: If true then once the user takes a photo, they get to preview the automatically detected document corners. They can then move the corners in case there needs to be an adjustment. If false then the user can't adjust the corners, and the user can only take 1 photo (maxNumDocuments can't be more than 1 in this case). | <code>: true</code>                       |
 | **`maxNumDocuments`**     | <code>number</code>                                   | Android only: The maximum number of photos an user can take (not counting photo retakes)                                                                                                                                                                                                                                                  | <code>: 24</code>                         |
 | **`responseType`**        | <code><a href="#responsetype">ResponseType</a></code> | The response comes back in this format on success. It can be the document scan image file paths or base64 images.                                                                                                                                                                                                                         | <code>: ResponseType.ImageFilePath</code> |
+| **`scannerMode`**         | <code><a href="#scannermode">ScannerMode</a></code>   | Android only (ML Kit): The scanner mode to use. - FULL: Full featured scanner with document detection, cropping, and filters - BASE: Basic scanner with document detection and cropping - BASE_WITH_FILTER: Basic scanner with document detection, cropping, and filters                                                                  | <code>: ScannerMode.FULL</code>           |
 
 
 ### Enums
@@ -193,6 +194,15 @@ Opens the camera, and starts the document scan
 | ------------------- | ---------------------------- | ------------------------------------------------------------------------------- |
 | **`Base64`**        | <code>'base64'</code>        | Use this response type if you want document scan returned as base64 images.     |
 | **`ImageFilePath`** | <code>'imageFilePath'</code> | Use this response type if you want document scan returned as inmage file paths. |
+
+
+#### ScannerMode
+
+| Members                | Value                           | Description                                                                                                                                  |
+| ---------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`FULL`**             | <code>'FULL'</code>             | Full featured scanner with document detection, cropping, and filters. This mode provides the best user experience with all features enabled. |
+| **`BASE`**             | <code>'BASE'</code>             | Basic scanner with document detection and cropping only. This mode is faster and uses less resources.                                        |
+| **`BASE_WITH_FILTER`** | <code>'BASE_WITH_FILTER'</code> | Basic scanner with document detection, cropping, and filters. This mode provides filters without the full feature set.                       |
 
 </docgen-api>
 

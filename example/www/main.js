@@ -1295,6 +1295,24 @@ var ResponseType;
      */
     ResponseType["ImageFilePath"] = "imageFilePath";
 })(ResponseType || (ResponseType = {}));
+var ScannerMode;
+(function (ScannerMode) {
+    /**
+     * Full featured scanner with document detection, cropping, and filters.
+     * This mode provides the best user experience with all features enabled.
+     */
+    ScannerMode["FULL"] = "FULL";
+    /**
+     * Basic scanner with document detection and cropping only.
+     * This mode is faster and uses less resources.
+     */
+    ScannerMode["BASE"] = "BASE";
+    /**
+     * Basic scanner with document detection, cropping, and filters.
+     * This mode provides filters without the full feature set.
+     */
+    ScannerMode["BASE_WITH_FILTER"] = "BASE_WITH_FILTER";
+})(ScannerMode || (ScannerMode = {}));
 var ScanDocumentResponseStatus;
 (function (ScanDocumentResponseStatus) {
     /**
@@ -1314,13 +1332,23 @@ const DocumentScanner = registerPlugin('DocumentScanner', {
 });
 
 /**
- * an example showing how to use the document scanner
+ * an example showing how to use the document scanner with Google ML Kit
  */
 const scanDocument = async () => {
     try {
-        // start the document scanner, and end after 1 photo
+        // start the document scanner with ML Kit options
         const { scannedImages, status } = await DocumentScanner.scanDocument({
-            maxNumDocuments: 1
+            // Maximum number of documents to scan
+            maxNumDocuments: 1,
+            // Scanner mode - FULL provides all features (filters, detection, cropping)
+            // Other options: ScannerMode.BASE, ScannerMode.BASE_WITH_FILTER
+            scannerMode: ScannerMode.FULL,
+            // Response type - can be base64 or file path
+            responseType: ResponseType.ImageFilePath,
+            // Allow user to adjust detected document corners
+            letUserAdjustCrop: true,
+            // Image quality (0-100, only affects base64 responses)
+            croppedImageQuality: 100
         });
         // get the html image
         const scannedImage = document.getElementById('scannedImage');
