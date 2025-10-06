@@ -1,4 +1,4 @@
-package com.websitebeaver.capacitordocumentscanner.demo;
+package com.luuckyy.capacitordocumentscanner.demo;
 
 import com.getcapacitor.BridgeActivity;
 

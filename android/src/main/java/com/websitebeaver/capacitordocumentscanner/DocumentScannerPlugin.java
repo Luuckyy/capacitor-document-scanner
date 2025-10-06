@@ -1,4 +1,4 @@
-package com.websitebeaver.capacitordocumentscanner;
+package com.luuckyy.capacitordocumentscanner;
 
 import android.app.Activity;
 import android.content.Intent;

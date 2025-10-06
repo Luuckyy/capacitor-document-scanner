@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.websitebeaver.capacitordocumentscanner.demo"
+    namespace "com.luuckyy.capacitordocumentscanner.demo"
     compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.websitebeaver.capacitordocumentscanner.demo"
+        applicationId "com.luuckyy.capacitordocumentscanner.demo"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
