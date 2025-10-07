@@ -56,8 +56,6 @@ public class DocumentScannerPlugin extends Plugin {
      */
     @PluginMethod
     public void scanDocument(PluginCall call) {
-        Log.d(TAG, "=== scanDocument called ===");
-        Log.d(TAG, "Call ID: " + call.getCallbackId());
         
         // Get configuration options from the call
         Integer maxNumDocuments = call.getInt("maxNumDocuments", 24);
@@ -65,13 +63,6 @@ public class DocumentScannerPlugin extends Plugin {
         String responseType = call.getString("responseType", RESPONSE_TYPE_IMAGE_FILE_PATH);
         Integer quality = call.getInt("croppedImageQuality", 100);
         Boolean letUserAdjustCrop = call.getBoolean("letUserAdjustCrop", true);
-        
-        Log.d(TAG, "Parameters:");
-        Log.d(TAG, "  maxNumDocuments: " + maxNumDocuments);
-        Log.d(TAG, "  scannerMode: " + scannerMode);
-        Log.d(TAG, "  responseType: " + responseType);
-        Log.d(TAG, "  quality: " + quality);
-        Log.d(TAG, "  letUserAdjustCrop: " + letUserAdjustCrop);
         
         // Store parameters for use in result handling
         this.currentResponseType = responseType;
@@ -83,13 +74,10 @@ public class DocumentScannerPlugin extends Plugin {
         // Set scanner mode
         if (SCANNER_MODE_BASE.equals(scannerMode)) {
             optionsBuilder.setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_BASE);
-            Log.d(TAG, "Scanner mode set to BASE");
         } else if (SCANNER_MODE_BASE_WITH_FILTER.equals(scannerMode)) {
             optionsBuilder.setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_BASE_WITH_FILTER);
-            Log.d(TAG, "Scanner mode set to BASE_WITH_FILTER");
         } else {
             optionsBuilder.setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL);
-            Log.d(TAG, "Scanner mode set to FULL");
         }
         
         // Set result formats
@@ -105,21 +93,17 @@ public class DocumentScannerPlugin extends Plugin {
         
         // Set gallery import allowed (equivalent to letUserAdjustCrop)
         optionsBuilder.setGalleryImportAllowed(letUserAdjustCrop);
-        Log.d(TAG, "Gallery import allowed: " + letUserAdjustCrop);
         
         GmsDocumentScannerOptions options = optionsBuilder.build();
         GmsDocumentScanner scanner = GmsDocumentScanning.getClient(options);
         
         // Get the scanner intent
-        Log.d(TAG, "Getting scanner intent...");
         scanner.getStartScanIntent(getActivity())
             .addOnSuccessListener(intentSender -> {
-                Log.d(TAG, "Scanner intent obtained successfully");
                 try {
                     // Save the call to process the result later
                     saveCall(call);
-                    Log.d(TAG, "Call saved, starting scanner with request code: " + REQUEST_CODE_SCAN);
-                    
+
                     // Use traditional startIntentSenderForResult with declared request code
                     getActivity().startIntentSenderForResult(
                         intentSender,
@@ -129,25 +113,18 @@ public class DocumentScannerPlugin extends Plugin {
                         0,    // flagsValues
                         0     // extraFlags
                     );
-                    Log.d(TAG, "Scanner started successfully with request code: " + REQUEST_CODE_SCAN);
+
                 } catch (Exception e) {
-                    Log.e(TAG, "Error starting scanner", e);
                     call.reject("Failed to start document scanner: " + e.getMessage());
                 }
             })
             .addOnFailureListener(e -> {
-                Log.e(TAG, "Error getting scanner intent", e);
                 call.reject("Failed to initialize document scanner: " + e.getMessage());
             });
     }
 
     @Override
     protected void handleOnActivityResult(int requestCode, int resultCode, Intent data) {
-        Log.d(TAG, "=== handleOnActivityResult called ===");
-        Log.d(TAG, "Request code: " + requestCode + " (expected: " + REQUEST_CODE_SCAN + ")");
-        Log.d(TAG, "Result code: " + resultCode + " (RESULT_OK=" + Activity.RESULT_OK + ", RESULT_CANCELED=" + Activity.RESULT_CANCELED + ")");
-        Log.d(TAG, "Data is null: " + (data == null));
-        
         super.handleOnActivityResult(requestCode, resultCode, data);
         
         if (requestCode != REQUEST_CODE_SCAN) {
@@ -160,81 +137,57 @@ public class DocumentScannerPlugin extends Plugin {
             Log.e(TAG, "No saved call found - this should not happen");
             return;
         }
-        
-        Log.d(TAG, "Processing result with call: " + call.getCallbackId());
+
         JSObject response = new JSObject();
         
         if (resultCode == Activity.RESULT_CANCELED) {
             // User cancelled the scan
-            Log.d(TAG, "User cancelled the scan - returning cancel status");
             response.put("status", "cancel");
             call.resolve(response);
-            Log.d(TAG, "Call resolved with cancel status");
             return;
         }
         
         if (resultCode != Activity.RESULT_OK) {
             // Error occurred
-            Log.e(TAG, "Document scanning failed with result code: " + resultCode);
             call.reject("Document scanning failed with result code: " + resultCode);
             return;
         }
         
         if (data == null) {
-            Log.e(TAG, "No data returned from document scanner");
             call.reject("No data returned from document scanner");
             return;
         }
         
-        Log.d(TAG, "Data received successfully, extracting scanning result...");
-        
         // Extract scanning result
         GmsDocumentScanningResult scanningResult = GmsDocumentScanningResult.fromActivityResultIntent(data);
         if (scanningResult == null) {
-            Log.e(TAG, "Failed to extract scanning result from intent data");
             call.reject("Failed to extract scanning result");
             return;
         }
         
-        Log.d(TAG, "Scanning result extracted successfully");
-        
         // Process the scanned pages
         List<GmsDocumentScanningResult.Page> pages = scanningResult.getPages();
         if (pages == null || pages.isEmpty()) {
-            Log.e(TAG, "No pages were scanned - pages is null or empty");
             call.reject("No pages were scanned");
             return;
         }
-        
-        Log.d(TAG, "Found " + pages.size() + " scanned pages");
-        Log.d(TAG, "Processing images with responseType: " + this.currentResponseType + ", quality: " + this.currentQuality);
-        
+
         try {
             ArrayList<String> scannedImages = new ArrayList<>();
             
             for (int i = 0; i < pages.size(); i++) {
                 GmsDocumentScanningResult.Page page = pages.get(i);
-                Log.d(TAG, "Processing page " + (i + 1) + " of " + pages.size());
                 
                 Uri imageUri = page.getImageUri();
                 if (imageUri != null) {
-                    Log.d(TAG, "Page " + (i + 1) + " image URI: " + imageUri.toString());
                     String processedImage = processImage(imageUri, this.currentResponseType, this.currentQuality);
                     if (processedImage != null) {
                         scannedImages.add(processedImage);
-                        Log.d(TAG, "Page " + (i + 1) + " processed successfully, length: " + processedImage.length());
-                    } else {
-                        Log.e(TAG, "Failed to process page " + (i + 1));
                     }
-                } else {
-                    Log.e(TAG, "Page " + (i + 1) + " has null image URI");
                 }
             }
             
-            Log.d(TAG, "Processed " + scannedImages.size() + " images successfully");
-            
             if (scannedImages.isEmpty()) {
-                Log.e(TAG, "No images were processed successfully");
                 call.reject("Failed to process scanned images");
                 return;
             }
@@ -242,12 +195,9 @@ public class DocumentScannerPlugin extends Plugin {
             response.put("scannedImages", new JSArray(scannedImages));
             response.put("status", "success");
             
-            Log.d(TAG, "Resolving call with success status and " + scannedImages.size() + " images");
             call.resolve(response);
-            Log.d(TAG, "Call resolved successfully");
             
         } catch (Exception e) {
-            Log.e(TAG, "Error processing scanned images", e);
             call.reject("Failed to process scanned images: " + e.getMessage());
         }
     }
@@ -263,10 +213,43 @@ public class DocumentScannerPlugin extends Plugin {
     private String processImage(Uri imageUri, String responseType, int quality) {
         try {
             if (RESPONSE_TYPE_IMAGE_FILE_PATH.equals(responseType)) {
-                // Copy to app's cache directory and return file URI
-                File cacheFile = new File(getContext().getCacheDir(), "scanned_" + System.currentTimeMillis() + ".jpg");
-                copyUriToFile(imageUri, cacheFile);
-                return cacheFile.getAbsolutePath();
+                // Use external files directory which is accessible and doesn't require permissions
+                File picturesDir = getContext().getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES);
+                if (picturesDir == null) {
+                    // Fallback to external files directory root
+                    picturesDir = getContext().getExternalFilesDir(null);
+                }
+                
+                if (picturesDir == null) {
+                    Log.e(TAG, "Failed to get external files directory");
+                    return null;
+                }
+                
+                // Create the directory if it doesn't exist
+                if (!picturesDir.exists()) {
+                    picturesDir.mkdirs();
+                }
+                
+                // Copy to app's external files directory and return Capacitor-compatible URI
+                File imageFile = new File(picturesDir, "scanned_" + System.currentTimeMillis() + ".jpg");
+                copyUriToFile(imageUri, imageFile);
+                
+                // Make the file readable
+                imageFile.setReadable(true, false);
+                
+                // Convert to Capacitor WebView URL that can be accessed from the web layer
+                String fileUri = imageFile.toURI().toString();
+                
+                // Use Capacitor's bridge to get a web-accessible URL
+                if (getBridge() != null && getBridge().getLocalUrl() != null) {
+                    String webViewUrl = getBridge().getLocalUrl();
+                    // Convert file path to a capacitor:// URL
+                    String capacitorPath = fileUri.replace("file://", webViewUrl + "/_capacitor_file_");
+                    return capacitorPath;
+                }
+                
+                // Fallback to file:// URI if bridge is not available
+                return fileUri;
             } else {
                 // Convert to base64
                 InputStream inputStream = getContext().getContentResolver().openInputStream(imageUri);
